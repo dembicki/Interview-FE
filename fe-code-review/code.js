@@ -4,20 +4,20 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
 
     if (req.body) {
         const file = req.file;
-        const requestID = req.body.requestID;
-        const project = req.body.project;
-        const idUser = req.body.userID;
-        const user = await User.findOne(idUser);
+        const requestID = req.body.requestID; // you should use destruct here, const { requestID } = req.body;
+        const project = req.body.project; // you should use destruct here, const { project } = req.body;
+        const idUser = req.body.userID; // you should use destruct here, const { userID } = req.body;
+        const user = await User.findOne(idUser); // keep the following naming: userID or userId
 
-        if (requestID && project && idUser && user) {
-            logDebug('User with role '+user.role, user);
-            if (user.role === 'ADVISOR' || user.role.indexOf('ADVISOR') > -1)
+        if (requestID && project && idUser && user) { // idUser condition doesn't make sense because user requires idUser arg
+            logDebug('User with role '+user.role, user); // remove logs?
+            if (user.role === 'ADVISOR' || user.role.indexOf('ADVISOR') > -1) // user.role.indexOf('ADVISOR') > -1 condition is not nessacary here
                 return res.json({requestID, step: 999, status: 'DONE', message: 'Nothing to do for ADVISOR role'});
 
             /* reset status variables */
             await db.updateStatus(requestID, 1, '');
 
-            logDebug('CONFIG:', config.projects);
+            logDebug('CONFIG:', config.projects); // remove logs?
             if (project === 'inkasso' && config.projects.hasOwnProperty(project) && file) {
                 const hashSum = crypto.createHash('sha256');
                 const fileHash = idUser;
@@ -28,17 +28,17 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                 await db.updateStatus(requestID, 3, '');
 
                 const folder = `${project}-signed/${idUser}`;
-                logDebug('FILE2=', file);
+                logDebug('FILE2=', file); // remove logs?
                 await uploadToGCSExact(folder, fileHash, fileName, fileType, file.mimetype, file.buffer);
                 await db.updateStatus(requestID, 4, '');
                 const ret = await db.updateUploadedDocs(idUser, requestID, fileName, fileType, file.buffer);
-                logDebug('DB UPLOAD:', ret);
+                logDebug('DB UPLOAD:', ret); // remove logs?
 
                 await db.updateStatus(requestID, 5, '');
 
-                let sent = true;
+                let sent = true; // remove ununsed variable
                 const debtCollectors = await db.getDebtCollectors();
-                logDebug('debtCollectors=', debtCollectors);
+                logDebug('debtCollectors=', debtCollectors); // remove logs?
                 if (!debtCollectors)
                     return res.status(500).json({requestID, message: 'Failed to get debt collectors'});
 
@@ -110,11 +110,13 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                 //if (!allSent)
                 //return res.status(500).json({requestID, message: 'Failed sending email'});
 
+                // Remove commented code here
+
                 await db.updateStatus(requestID, 500, '');
 
                 /* prepare summary email */
                 const summaryConfig = {
-                    //bcc: [{ email: 'tomas@inkassoregisteret.com', name: 'Tomas' }],
+                    //bcc: [{ email: 'tomas@inkassoregisteret.com', name: 'Tomas' }], // Remove unused code here
                     sender: config.projects[project].email.sender,
                     replyTo: config.projects[project].email.replyTo,
                     subject: 'Oppsummering Kravsforespørsel',
@@ -124,12 +126,15 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                     },
                     tags: ['summary'],
                     to: [{ email: 'tomas@upscore.no' , name: 'Tomas' }], // FIXXX: config.projects[project].email.sender
+                    // remove fix comments
                 };
                 logDebug('Summary config:', summaryConfig);
 
                 /* send email */
                 //const respSummary = await email.send(sendConfig, config.projects[project].email.apiKey);
                 //logDebug('extract() summary resp=', respSummary);
+
+                // Remove commented code here
 
                 await db.updateStatus(requestID, 900, '');
             }
@@ -140,3 +145,11 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
     }
     res.status(500).json({requestID: '', message: 'Missing requried input (form data)'});
 });
+
+
+// General advice:
+
+// 1. Restructure your code into well-named functions to improve readability
+// 2. Remove comments and ununsed code
+// 3. Make sure to keep variables names coherent
+// 4. Remove ununsed variables
